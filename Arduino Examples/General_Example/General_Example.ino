@@ -52,12 +52,6 @@ void setup() {
   
     SPI.begin();
 
-    /* Initialize MCP2515 */
-    mcp2515.reset();
-    mcp2515.setBitrate(CAN_500KBPS);
-    mcp2515setOneShotMode();
-    mcp2515.setNormalMode();
-
     /* Initialize SBC */
     SBC_ErrorCode err = SBC_Init();
     if(err.flippedBitsMask != 0) {
@@ -78,11 +72,6 @@ void setup() {
     attachInterrupt(1, irqSBC_Handler, RISING);
 
     SBC_Register_Callback(SBC_ISR_WK_WU, irqSBC_Wake_Handler);
-
-    /* Initialize LEDs */
-    strip.begin();
-    strip.setBrightness(255);
-    strip.show();
 }
 
 void loop() {
@@ -98,59 +87,6 @@ void loop() {
     if (irqSBC) {
       SBC_ISR();
       irqSBC = false;      
-    }
-
-
-      
-    MCP2515::ERROR err = mcp2515.readMessage(&canMsg);
-    Serial.println("Int. CAN");
-
-    if (err == MCP2515::ERROR_OK) {
-        switch (canMsg.can_id)
-        {   
-            /* Change single pixel color using can_id 0x100 */
-            case 0x100:
-                strip.setPixelColor(canMsg.data[0], strip.Color(canMsg.data[1], canMsg.data[2], canMsg.data[3]));
-                strip.show();
-                break;
-
-            /* Change all pixels to a color using can_id 0x101 */
-            case 0x101:
-                for (int i = 0; i < strip.numPixels(); i++)  {
-                    strip.setPixelColor(i, strip.Color(canMsg.data[0], canMsg.data[1], canMsg.data[2]));
-                    strip.show(); 
-                }
-                break;
-
-            /* Turn on/off the Charge Pump and Failure Output */
-            case 0x102:
-                if(canMsg.data[0]) {
-                    SBC_CP_On();
-                } else {
-                    SBC_CP_Off();
-                }
-                if(canMsg.data[1]) {
-                    SBC_FO_Test_On();
-                } else {
-                    SBC_FO_Test_Off();
-                }
-                break;
-
-            /* Blink red */
-            default:
-                for (int i = 0; i < strip.numPixels(); i++)  {
-                    strip.setPixelColor(i, 0xff0000);
-                    strip.show(); 
-                }
-                delay(250);
-                for (int i = 0; i < strip.numPixels(); i++)  {
-                    strip.setPixelColor(i, 0x000000);
-                    strip.show(); 
-                }
-                break;
-        }
-    } 
-    
-    
+    }    
     
 }
